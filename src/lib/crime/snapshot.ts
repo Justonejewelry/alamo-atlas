@@ -73,8 +73,12 @@ function windowFor(maxDate: string, range: RangeId) {
 }
 
 function whereClause(from: string, to: string, against: AgainstId, group: string): string {
-  const parts = [`\"Report_Date\" >= ${sqlStr(from)}`, `\"Report_Date\" <= ${sqlStr(to)}`];
-  if (against !== "ALL") parts.push(`\"NIBRS_Crime_Against\" = ${sqlStr(against)}`);
-  if (group !== "ALL") parts.push(`\"NIBRS_Group\" = ${sqlStr(group)}`);
+  const parts = [`"Report_Date" >= ${sqlStr(from)}`, `"Report_Date" <= ${sqlStr(to)}`];
+  if (against !== "ALL") parts.push(`"NIBRS_Crime_Against" = ${sqlStr(against)}`);
+  if (group !== "ALL") parts.push(`"NIBRS_Group" = ${sqlStr(group)}`);
   return parts.join(" AND ");
+}
+
+function cfsWhere(from: string, to: string): string {
+  return `"Response_Date" >= ${sqlStr(from)} AND "Response_Date" < ${sqlStr(addDays(to, 1))}`;
 }
