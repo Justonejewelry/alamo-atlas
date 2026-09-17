@@ -26,6 +26,9 @@ fonts/
 *.pem
 *.key
 
+# Runtime geocode cache (hundred-block hits)
+data/geocode-cache.json
+
 # Grok App Builder sandbox internals (not the product)
 .grok/
 AGENTS.md
