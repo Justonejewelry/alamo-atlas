@@ -1,10 +1,6 @@
 import { classifyProblem, parseSaDate, parseTacc, streetOf, type LiveCall } from "./cad-parse.ts";
+import { ARCGIS_CFS_7DAY, ATLAS_UA, FEEDS, TACC_FIRE_DAY } from "./feeds.ts";
 
-const UA = "AlamoAtlas/1.0 (San Antonio public-safety map)";
-const ARCGIS =
-  "https://services.arcgis.com/g1fRTDLeMgspWrYp/ArcGIS/rest/services/CFS_SAPD_7Days/FeatureServer/0/query";
-const TACC_DAY = (y: string, m: string, d: string) =>
-  `https://smartcity.tacc.utexas.edu/fire/api/v1/SanAntonio/${y}/${m}/${d}/FireMap.json`;
 const PAGE = 2000;
 const TTL_MS = 10 * 60_000;
 const TZ = "America/Chicago";
@@ -116,10 +112,10 @@ function callFromArcgis(row: ArcgisAttrs): LiveCall | null {
 }
 
 async function arcgisQuery(params: Record<string, string>): Promise<Record<string, unknown>> {
-  const url = `${ARCGIS}?${new URLSearchParams({ ...params, f: "json" }).toString()}`;
+  const url = `${ARCGIS_CFS_7DAY}?${new URLSearchParams({ ...params, f: "json" }).toString()}`;
   const res = await fetch(url, {
-    headers: { "user-agent": UA, accept: "application/json" },
-    signal: AbortSignal.timeout(20_000),
+    headers: { "user-agent": ATLAS_UA, accept: "application/json" },
+    signal: AbortSignal.timeout(FEEDS.sapdCfs7d.timeoutMs),
   });
   if (!res.ok) throw new Error(`SAPD 7-day board returned ${res.status}`);
   const json = (await res.json()) as Record<string, unknown>;
@@ -128,7 +124,7 @@ async function arcgisQuery(params: Record<string, string>): Promise<Record<strin
   return json;
 }
 
-async function fetchArcgisDay(ymd: string): Promise<LiveCall[]> {
+export async function loadArcgisDayCalls(ymd: string): Promise<LiveCall[]> {
   const token = arcgisDayToken(ymd);
   const where = `ResponseDateText LIKE '${token}%'`;
   const out: LiveCall[] = [];
@@ -175,9 +171,9 @@ async function fetchTaccDay(ymd: string): Promise<LiveCall[]> {
   const [y, m, d] = ymd.split("-");
   if (!y || !m || !d) return [];
   try {
-    const res = await fetch(TACC_DAY(y, m, d), {
-      headers: { "user-agent": UA, accept: "application/json" },
-      signal: AbortSignal.timeout(8_000),
+    const res = await fetch(TACC_FIRE_DAY(y, m, d), {
+      headers: { "user-agent": ATLAS_UA, accept: "application/json" },
+      signal: AbortSignal.timeout(FEEDS.taccFire.timeoutMs),
     });
     if (!res.ok) return [];
     const calls = parseTacc(await res.json());
@@ -261,13 +257,13 @@ export async function loadDailyDispatch(now = Date.now()): Promise<DailyFeed> {
   let police: LiveCall[] = [];
   let error: string | null = null;
   try {
-    police = await fetchArcgisDay(day);
+    police = await loadArcgisDayCalls(day);
     if (police.length === 0) {
       const latest = await latestArcgisDay();
       if (latest && latest !== day) {
         day = latest;
         lagged = true;
-        police = await fetchArcgisDay(day);
+        police = await loadArcgisDayCalls(day);
       }
     }
   } catch (err) {
