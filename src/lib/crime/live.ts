@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { attachCoords } from "./geocode";
 import { decorateTraffic } from "./transguide";
+import { chicagoYmd, loadArcgisDayCalls } from "./daily";
+import { ATLAS_UA, FEEDS, TACC_FIRE_DAY } from "./feeds";
 import {
   backoffMs,
   hidden,
@@ -20,13 +22,7 @@ import {
 export type { CallAgency, CallSeverity, GeoQuality, LiveCall, LiveWindow };
 export { withinLiveWindow } from "./cad-parse";
 
-const CAD_URL = "https://webapp3.sanantonio.gov/policecalls/Calls.aspx";
-const FIRE_URL = "https://webapp3.sanantonio.gov/activefire/Fire.aspx";
-const EMS_URL = "https://webapp3.sanantonio.gov/activefire/EMS.aspx";
-const FIRE_72_URL = "https://webapp3.sanantonio.gov/activefire/SAFDDisplay.aspx";
-const NWS_ZONE = "https://api.weather.gov/alerts/active?zone=TXC029";
-const TTL_MS = 30_000;
-const UA = "AlamoAtlas/1.0 (San Antonio public-safety map)";
+const TTL_MS = FEEDS.sapdCfs7d.ttlMs;
 
 let cache: { at: number; value: LiveFeed } | null = null;
 let lastGood: LiveFeed | null = null;
@@ -71,12 +67,12 @@ async function cadPage(url: string, init?: { body?: string }): Promise<string> {
     const res = await fetch(url, {
       method: init?.body ? "POST" : "GET",
       headers: {
-        "user-agent": UA,
+        "user-agent": ATLAS_UA,
         accept: "text/html",
         ...(init?.body ? { "content-type": "application/x-www-form-urlencoded" } : {}),
       },
       body: init?.body,
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(FEEDS.sapdCadHtml.timeoutMs),
     });
     if (!res.ok) throw new Error(`${url} returned ${res.status}`);
     return res.text();
@@ -84,7 +80,7 @@ async function cadPage(url: string, init?: { body?: string }): Promise<string> {
 }
 
 async function fetchPolice(): Promise<{ calls: LiveCall[]; sourceUpdated: string | null }> {
-  const first = await cadPage(CAD_URL);
+  const first = await cadPage(FEEDS.sapdCadHtml.url);
   const calls = parsePolice(first);
   const sourceUpdated = /id="lblLastUpdate">([^<]+)</i.exec(first)?.[1]?.trim() ?? null;
   const pageNs = [...first.matchAll(/Page\$(\d+)/g)].map((m) => Number(m[1]));
@@ -104,7 +100,7 @@ async function fetchPolice(): Promise<{ calls: LiveCall[]; sourceUpdated: string
         __EVENTVALIDATION: ev,
       }).toString();
       try {
-        return parsePolice(await cadPage(CAD_URL, { body }));
+        return parsePolice(await cadPage(FEEDS.sapdCadHtml.url, { body }));
       } catch {
         return [] as LiveCall[];
       }
@@ -126,17 +122,17 @@ async function fetchTaccHistory(): Promise<LiveCall[]> {
   const days: string[] = [];
   for (let i = 0; i < 3; i++) {
     const d = new Date(now.getTime() - i * 86400000);
-    const y = d.getFullYear();
+    const y = String(d.getFullYear());
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
-    days.push(`https://smartcity.tacc.utexas.edu/fire/api/v1/SanAntonio/${y}/${m}/${day}/FireMap.json`);
+    days.push(TACC_FIRE_DAY(y, m, day));
   }
   const lists = await Promise.all(
     days.map(async (url) => {
       try {
         const res = await fetch(url, {
-          headers: { "user-agent": UA, accept: "application/json" },
-          signal: AbortSignal.timeout(8_000),
+          headers: { "user-agent": ATLAS_UA, accept: "application/json" },
+          signal: AbortSignal.timeout(FEEDS.taccFire.timeoutMs),
         });
         if (!res.ok) return [] as LiveCall[];
         return parseTacc(await res.json());
@@ -152,11 +148,11 @@ async function fetchWeather(lat?: number, lng?: number): Promise<WeatherAlert[]>
   const url =
     lat != null && lng != null
       ? `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}`
-      : NWS_ZONE;
+      : FEEDS.nwsBexar.url;
   try {
     const res = await fetch(url, {
-      headers: { "user-agent": UA, accept: "application/geo+json" },
-      signal: AbortSignal.timeout(8_000),
+      headers: { "user-agent": ATLAS_UA, accept: "application/geo+json" },
+      signal: AbortSignal.timeout(FEEDS.nwsBexar.timeoutMs),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as {
@@ -184,18 +180,32 @@ function rememberHistory(calls: LiveCall[]) {
 }
 
 export async function loadLiveFeed(lat?: number, lng?: number): Promise<LiveFeed> {
-  const [police, fire, ems, official72, tacc, weather] = await Promise.allSettled([
-    fetchPolice(),
-    cadPage(FIRE_URL).then((html) => parseSafd(html, "fire")),
-    cadPage(EMS_URL).then((html) => parseSafd(html, "ems")),
-    cadPage(FIRE_72_URL).then(parseSafd72),
+  const today = chicagoYmd();
+  const [arcgisToday, fire, ems, official72, tacc, weather] = await Promise.allSettled([
+    loadArcgisDayCalls(today),
+    cadPage(FEEDS.safdFireHtml.url).then((html) => parseSafd(html, "fire")),
+    cadPage(FEEDS.safdEmsHtml.url).then((html) => parseSafd(html, "ems")),
+    cadPage(FEEDS.safd72Html.url).then(parseSafd72),
     fetchTaccHistory(),
     fetchWeather(lat, lng),
   ]);
-  const policeOk = police.status === "fulfilled" ? police.value.calls : [];
+
+  let policeOk = arcgisToday.status === "fulfilled" ? arcgisToday.value : [];
+  let sourceUpdated =
+    policeOk.length > 0 ? `SAPD 7-day CFS ${today}` : null;
+  let htmlPoliceFailed = false;
+  if (policeOk.length === 0) {
+    try {
+      const html = await fetchPolice();
+      policeOk = html.calls;
+      sourceUpdated = html.sourceUpdated;
+    } catch {
+      htmlPoliceFailed = true;
+    }
+  }
+
   const fireOk = fire.status === "fulfilled" ? fire.value : [];
   const emsOk = ems.status === "fulfilled" ? ems.value : [];
-  const sourceUpdated = police.status === "fulfilled" ? police.value.sourceUpdated : null;
   const weatherOk = weather.status === "fulfilled" ? weather.value : [];
   const raw = mergeBoards(policeOk, fireOk, emsOk);
   rememberHistory([...raw, ...(tacc.status === "fulfilled" ? tacc.value : [])]);
@@ -221,7 +231,7 @@ export async function loadLiveFeed(lat?: number, lng?: number): Promise<LiveFeed
     calls = raw;
   }
   const misses = [
-    police.status === "rejected" ? "SAPD police board" : null,
+    arcgisToday.status === "rejected" && htmlPoliceFailed ? "SAPD police board" : null,
     fire.status === "rejected" ? "SAFD fire board" : null,
     ems.status === "rejected" ? "SAFD EMS board" : null,
   ].filter(Boolean);
