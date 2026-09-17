@@ -1,15 +1,17 @@
 import type { LiveCall } from "./cad-parse";
+import { ATLAS_UA } from "./feeds";
+import { loadGeoCache, saveGeoCache, type GeoCacheEntry } from "./geocode-store";
 
 export type Coord = { lat: number; lng: number };
 
-type CacheEntry = { pt: Coord | null; at: number };
-
-const cache = new Map<string, CacheEntry>();
+const cache = new Map<string, GeoCacheEntry>();
 const FAIL_TTL_MS = 12 * 60_000;
-const UA = "AlamoAtlas/1.0 (San Antonio public-safety map)";
 const CITY = "SAN ANTONIO, TX";
 const BEXAR_EXTENT = "-98.90,29.08,-98.05,29.78";
 const SA_CENTER = "-98.4936,29.4241";
+
+let hydrated = false;
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
 const STREET_TYPE =
   /\b(ST|STREET|DR|DRIVE|RD|ROAD|AVE|AVENUE|BLVD|BOULEVARD|LN|LANE|PKWY|PARKWAY|HWY|HIGHWAY|CIR|CIRCLE|CT|COURT|WAY|TRL|TRAIL|PL|PLACE|LOOP|FWY|EXPY|EXPRESSWAY|PASS|PATH|ROW|TER|TERRACE|CV|COVE|PT|POINT|RUN|XING|CROSSING|ACCESS)\b/i;
@@ -29,6 +31,21 @@ export function addressKey(address: string, zip: string): string {
 
 export function streetOf(address: string): string {
   return address.replace(/^\d+\s+/, "").replace(/\s+\d{5}\s*$/, "").trim();
+}
+
+function hydrate() {
+  if (hydrated) return;
+  hydrated = true;
+  loadGeoCache(cache);
+}
+
+function schedulePersist() {
+  if (typeof window !== "undefined") return;
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    saveGeoCache(cache);
+  }, 1_500);
 }
 
 function tidy(s: string): string {
@@ -52,7 +69,7 @@ export function geocodeQueries(address: string, zip: string, crossStreet?: strin
   };
 
   let s = raw;
-  s = s.replace(/\b(\d{3,6})\s*[-–]\s*(\d{3,6})\b/, (_, a, b) =>
+  s = s.replace(/\b(\d{3,6})\s*[-\u2013]\s*(\d{3,6})\b/, (_, a, b) =>
     String(Math.round((Number(a) + Number(b)) / 2)),
   );
   s = s.replace(/\b(\d+)\s+(?:BLK|BLOCK(?:\s+OF)?)\s+/i, "$1 ");
@@ -124,7 +141,7 @@ async function censusLine(line: string, ms: number): Promise<Coord | null> {
     format: "json",
   });
   const res = await fetch(`https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?${params}`, {
-    headers: { "user-agent": UA, accept: "application/json" },
+    headers: { "user-agent": ATLAS_UA, accept: "application/json" },
     signal: AbortSignal.timeout(ms),
   });
   if (!res.ok) return null;
@@ -151,7 +168,7 @@ async function arcgisLine(line: string, zip: string, ms: number): Promise<Coord 
   const res = await fetch(
     `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?${params}`,
     {
-      headers: { "user-agent": UA, accept: "application/json" },
+      headers: { "user-agent": ATLAS_UA, accept: "application/json" },
       signal: AbortSignal.timeout(ms),
     },
   );
@@ -223,6 +240,7 @@ async function geocodeOne(
 }
 
 export async function attachCoords(calls: LiveCall[], budgetMs = 12_000): Promise<LiveCall[]> {
+  hydrate();
   const deadline = Date.now() + budgetMs;
   const pending: Array<{ key: string; address: string; zip: string; crossStreet?: string }> = [];
   const seen = new Set<string>();
@@ -237,6 +255,7 @@ export async function attachCoords(calls: LiveCall[], budgetMs = 12_000): Promis
     pending.push({ key, address: c.address, zip: c.zip, crossStreet: c.crossStreet });
   }
 
+  let wrote = false;
   let cursor = 0;
   const workers = Array.from({ length: 5 }, async () => {
     while (cursor < pending.length && Date.now() < deadline) {
@@ -245,13 +264,17 @@ export async function attachCoords(calls: LiveCall[], budgetMs = 12_000): Promis
       try {
         const started = Date.now();
         const pt = await geocodeOne(job.address, job.zip, job.crossStreet, Math.min(deadline, Date.now() + 9_000));
-        if (pt || Date.now() - started > 700) cache.set(job.key, { pt, at: Date.now() });
+        if (pt || Date.now() - started > 700) {
+          cache.set(job.key, { pt, at: Date.now() });
+          wrote = true;
+        }
       } catch {
         /* leave uncached so the next poll retries */
       }
     }
   });
   await Promise.all(workers);
+  if (wrote) schedulePersist();
 
   return calls.map((c) => {
     const street = streetOf(c.address);
