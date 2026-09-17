@@ -14,13 +14,13 @@ export const Route = createFileRoute("/api/live.json")({
           const url = new URL(request.url);
           const feed = await loadLiveFeedCached(numParam(url, "lat"), numParam(url, "lng"));
           return Response.json(feed, {
-            headers: { "cache-control": "no-store" },
+            headers: { "cache-control": "s-maxage=20, stale-while-revalidate=40" },
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           return Response.json(
             { error: message, calls: [], history: [], weather: [], stale: true },
-            { status: 502, headers: { "cache-control": "no-store" } },
+            { status: 502, headers: { "cache-control": "s-maxage=10, stale-while-revalidate=20" } },
           );
         }
       },
