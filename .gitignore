@@ -1,0 +1,34 @@
+# Runtime / install
+node_modules/
+.vercel/
+.tanstack/
+dist/
+
+# QA, capture, and gen intermediates — not part of the app
+screenshots/
+artifacts/
+attachments/
+fonts/
+*.mp4
+*.webm
+*.m4a
+
+# Local editor / OS
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Grok App Builder sandbox internals (not the product)
+.grok/
+AGENTS.md
+AGENTS.project.md
+.project_id
+.node_modules.lock

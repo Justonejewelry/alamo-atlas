@@ -1,0 +1,411 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-bg: #0a0b0c;
+  --color-surface: #121416;
+  --color-surface-2: #1a1d21;
+  --color-fg: #ececea;
+  --color-muted: #8c8f8a;
+  --color-subtle: #6a6d68;
+  --color-accent: #c612af;
+  --color-accent-fg: #ffffff;
+  --color-fire: #e85d04;
+  --color-ems: #2a9d8f;
+  --color-border: color-mix(in oklab, var(--color-fg) 12%, transparent);
+  --color-border-strong: color-mix(in oklab, var(--color-fg) 22%, transparent);
+  --color-heat-0: #143a40;
+  --color-heat-1: #1f6f6a;
+  --color-heat-2: #c4a056;
+  --color-heat-3: #d26532;
+  --color-heat-4: #b42318;
+  --color-person: #c17a6f;
+  --color-property: #8fa3b0;
+  --color-society: #7d8c78;
+  --color-up: #e05aa8;
+  --color-down: #7d9a86;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-quick: 150ms;
+  --motion-fast: 250ms;
+  --motion-slow: 400ms;
+  --motion-crawl: 12s;
+  --tracking-kicker: 0.16em;
+  --shadow-float: 0 12px 32px color-mix(in oklab, #000 35%, transparent);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+.atlas-tooltip {
+  background: var(--color-surface) !important;
+  color: var(--color-fg) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 10px 30px color-mix(in oklab, #000 45%, transparent) !important;
+  padding: 8px 10px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+.atlas-tooltip::before {
+  border-top-color: var(--color-surface) !important;
+}
+.leaflet-container {
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  z-index: 0;
+}
+.leaflet-control-zoom a {
+  background: var(--color-surface) !important;
+  color: var(--color-fg) !important;
+  border: 1px solid var(--color-border) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 34px !important;
+  border-radius: 0 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--color-surface-2) !important;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden;
+  border-radius: var(--radius-sm) !important;
+}
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--color-bg) 82%, transparent) !important;
+  color: var(--color-subtle) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--color-muted) !important;
+}
+
+/* OSM streets, darkened in CSS so the map never needs a commercial tile key. */
+.leaflet-tile-pane .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.88) saturate(0.2);
+}
+
+.pulse-mark {
+  background: transparent;
+  border: none;
+}
+.pulse-mark span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 10px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  pointer-events: none;
+  transform: scale(1);
+  opacity: 0.85;
+  animation: pulse-live 2.6s var(--ease-out) infinite;
+  will-change: transform, opacity;
+}
+
+.cam-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  color: var(--color-fg);
+}
+.cam-mark span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes pulse-live {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.leaflet-container.is-moving .pulse-mark span,
+.leaflet-container.is-moving .live-dot {
+  animation: none;
+  opacity: 0.55;
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-mark span,
+  .live-dot {
+    animation: none;
+    will-change: auto;
+  }
+}
+
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  transform: scale(1);
+  animation: pulse-live 2.4s var(--ease-out) infinite;
+}
+
+.leaflet-top {
+  top: calc(4.75rem + env(safe-area-inset-top));
+}
+.leaflet-bottom {
+  bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+
+.atlas-dock {
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(4rem + env(safe-area-inset-bottom));
+}
+.atlas-dock button {
+  position: relative;
+  touch-action: manipulation;
+}
+.atlas-dock button[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.75rem;
+  height: 2px;
+  transform: translateX(-50%);
+  background: var(--color-accent);
+  border-radius: 99px;
+}
+
+.atlas-kicker {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.atlas-fab {
+  bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+@media (max-width: 767px) {
+  .atlas-fab {
+    bottom: calc(8.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+.atlas-sheet {
+  min-height: 0;
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+  transition: height var(--motion-fast) var(--ease-out), max-height var(--motion-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-sheet {
+    transition: none;
+  }
+}
+@media (max-width: 767px) {
+  .atlas-sheet:not([data-open="true"]) {
+    height: 3.25rem;
+    max-height: 3.25rem;
+  }
+  .atlas-sheet[data-open="true"] {
+    height: calc(78dvh - 4rem);
+    max-height: calc(100dvh - 9rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+}
+@media (min-width: 768px) {
+  .atlas-sheet {
+    left: auto;
+    right: 1rem;
+    width: min(380px, calc(100vw - 2rem));
+    top: auto;
+    border-radius: var(--radius-lg);
+    max-height: calc(100dvh - 9rem);
+  }
+  .atlas-sheet:not([data-open="true"]) {
+    height: 3.25rem;
+    max-height: 3.25rem;
+  }
+  .atlas-sheet[data-open="true"] {
+    height: min(42rem, calc(100dvh - 9.5rem));
+  }
+}
+
+.panel-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-fg) 18%, transparent);
+  border-radius: 99px;
+}
+
+.atlas-howto {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
+.howto-progress {
+  height: 3px;
+  background: var(--color-border);
+}
+.howto-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width var(--motion-fast) var(--ease-out);
+}
+.howto-stage {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+@media (min-width: 768px) {
+  .howto-stage {
+    padding: 2rem 2.5rem 2.5rem;
+  }
+}
+.howto-copy {
+  width: min(42rem, 100%);
+}
+.howto-index {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2vw + 0.75rem, 2.25rem);
+  line-height: 1;
+  color: var(--color-accent);
+  margin-bottom: 0.35rem;
+}
+.howto-headline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 4.5vw + 1rem, 4.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--color-fg);
+  text-wrap: balance;
+}
+.howto-mark {
+  width: 0.72em;
+  height: 0.72em;
+  margin-top: 0.18em;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+.howto-lede {
+  margin-top: 1.1rem;
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.625rem);
+  line-height: 1.45;
+  color: var(--color-muted);
+  max-width: 36rem;
+  text-wrap: pretty;
+}
+.howto-copy > * {
+  animation: howto-in var(--motion-slow) var(--ease-out) both;
+}
+.howto-copy > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.howto-copy > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.howto-copy > *:nth-child(3) {
+  animation-delay: 110ms;
+}
+.howto-copy > *:nth-child(4) {
+  animation-delay: 160ms;
+}
+.howto-copy > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+@keyframes howto-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .howto-copy > * {
+    animation: none;
+  }
+  .howto-progress > span {
+    transition: none;
+  }
+}
+

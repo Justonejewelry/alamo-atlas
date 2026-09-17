@@ -1,0 +1,13 @@
+node_modules
+.vercel
+.tanstack
+screenshots
+artifacts
+attachments
+fonts
+*.mp4
+*.webm
+*.m4a
+*.log
+.DS_Store
+AGENTS.md
