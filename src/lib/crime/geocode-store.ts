@@ -1,8 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Coord } from "./geocode.ts";
 
-export type GeoCacheEntry = { pt: Coord | null; at: number };
+export type GeoCacheEntry = { pt: { lat: number; lng: number } | null; at: number };
 
 const MAX_KEYS = 8_000;
 const HIT_TTL_MS = 30 * 24 * 60 * 60_000;
