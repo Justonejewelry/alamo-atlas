@@ -1,5 +1,6 @@
 import { classifyProblem, parseSaDate, parseTacc, streetOf, type LiveCall } from "./cad-parse.ts";
 import { ARCGIS_CFS_7DAY, ATLAS_UA, FEEDS, TACC_FIRE_DAY } from "./feeds.ts";
+import { cachedAlmanac } from "./almanac-cache.ts";
 
 const PAGE = 2000;
 const TTL_MS = 10 * 60_000;
@@ -21,8 +22,6 @@ export type DailyFeed = {
   ems: number;
   error: string | null;
 };
-
-let cache: { key: string; at: number; value: DailyFeed } | null = null;
 
 export function chicagoYmd(ms = Date.now()): string {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -249,9 +248,16 @@ export function isDailyFeed(v: unknown): v is DailyFeed {
 
 export async function loadDailyDispatch(now = Date.now()): Promise<DailyFeed> {
   const requested = previousChicagoDay(now);
-  const key = requested;
-  if (cache && cache.key === key && Date.now() - cache.at < TTL_MS) return cache.value;
+  return cachedAlmanac({
+    key: `daily:${requested}`,
+    ttlMs: TTL_MS,
+    source: "sapd-cfs-7d+tacc",
+    validate: isDailyFeed,
+    load: () => loadDailyDispatchUncached(requested),
+  });
+}
 
+async function loadDailyDispatchUncached(requested: string): Promise<DailyFeed> {
   let day = requested;
   let lagged = false;
   let police: LiveCall[] = [];
@@ -285,7 +291,6 @@ export async function loadDailyDispatch(now = Date.now()): Promise<DailyFeed> {
       requested,
       error ?? "No public dispatches for yesterday yet. The 7-day board updates after the day closes.",
     );
-    cache = { key, at: Date.now(), value };
     return value;
   }
 
@@ -304,6 +309,5 @@ export async function loadDailyDispatch(now = Date.now()): Promise<DailyFeed> {
       ? `Yesterday is not on the 7-day board yet. Showing ${labelChicagoDay(day)}, the latest complete day.`
       : error,
   };
-  cache = { key, at: Date.now(), value };
   return value;
 }
