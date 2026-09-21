@@ -76,6 +76,11 @@ export const Route = createRootRoute({
           }}
         />
         <Scripts />
+        <script
+          data-goatcounter="https://crime.goatcounter.com/count"
+          async
+          src="https://gc.zgo.at/count.js"
+        />
       </body>
     </html>
   ),
