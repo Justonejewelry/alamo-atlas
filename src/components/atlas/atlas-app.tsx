@@ -15,6 +15,8 @@ import {
   type SearchHit,
 } from "@/components/atlas/app-chrome";
 import { HowTo, HOWTO_IDS } from "@/components/atlas/how-to";
+import { LoadingScreen } from "@/components/atlas/loading-screen";
+import { StartScreen } from "@/components/atlas/start-screen";
 import { CrimeMap, type MapSelection } from "@/components/atlas/crime-map";
 import { Hint } from "@/components/atlas/hint";
 import { StatsPanel } from "@/components/atlas/stats-panel";
@@ -83,7 +85,9 @@ export function AtlasApp() {
   const setNotify = usePrefs((s) => s.setNotify);
   const digestAt = usePrefs((s) => s.digestAt);
   const markDigest = usePrefs((s) => s.markDigest);
+  const seenIntro = usePrefs((s) => s.seenIntro);
   const seenHowTo = usePrefs((s) => s.seenHowTo);
+  const dismissIntro = usePrefs((s) => s.dismissIntro);
   const dismissHowTo = usePrefs((s) => s.dismissHowTo);
   const hydrated = usePrefs((s) => s.hydrated);
 
@@ -146,8 +150,9 @@ export function AtlasApp() {
       setGeography("zip");
       setPanelOpen(true);
       dismissHowTo();
+      dismissIntro();
     }
-  }, [setLocale, dismissHowTo]);
+  }, [setLocale, dismissHowTo, dismissIntro]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1240,8 +1245,26 @@ export function AtlasApp() {
           setMenu(null);
         }}
       />
+      <StartScreen
+        open={hydrated && !seenIntro}
+        onLocate={() => {
+          dismissIntro();
+          locate();
+        }}
+        onSaveZip={(zip) => {
+          addWatch({ zip, name: zipMeta.get(zip)?.name ?? "" });
+          selectZip(zip);
+          dismissIntro();
+        }}
+        onSkip={() => {
+          dismissIntro();
+        }}
+      />
       <HowTo
-        open={howToReplay || (hydrated && !seenHowTo && !howToSessionSkip)}
+        open={
+          howToReplay ||
+          (hydrated && seenIntro && !seenHowTo && !howToSessionSkip)
+        }
         startAt={howToStart}
         onSkipNow={() => {
           setHowToReplay(false);
@@ -1265,6 +1288,19 @@ export function AtlasApp() {
           setHowToReplay(false);
           setHowToSessionSkip(true);
         }}
+      />
+      <LoadingScreen
+        open={
+          hydrated &&
+          seenIntro &&
+          (seenHowTo || howToSessionSkip) &&
+          !howToReplay &&
+          ((tab === "live" && liveQuery.isLoading && !liveQuery.data) ||
+            (tab === "stats" && snapshotQuery.isLoading && !snapshotQuery.data))
+        }
+        progressLabel={
+          tab === "stats" ? t("loading.reports") : t("loading.board")
+        }
       />
     </main>
   );

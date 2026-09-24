@@ -409,3 +409,191 @@
   }
 }
 
+
+/* ── Night Map Hero start + FOIA loading ───────────────────────── */
+
+.atlas-logo-3d {
+  box-shadow:
+    0 1px 0 color-mix(in oklab, #fff 55%, transparent),
+    0 10px 28px color-mix(in oklab, #000 55%, transparent),
+    0 2px 6px color-mix(in oklab, #000 40%, transparent),
+    inset 0 1px 2px color-mix(in oklab, #fff 35%, transparent),
+    inset 0 -2px 4px color-mix(in oklab, #000 18%, transparent);
+  ring: none;
+}
+
+.atlas-cta-primary {
+  border-radius: 999px !important;
+  font-weight: 500;
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--color-accent) 35%, transparent);
+}
+
+.atlas-cta-outline {
+  border-radius: 999px !important;
+  border-color: var(--color-border-strong) !important;
+  background: color-mix(in oklab, var(--color-bg) 55%, transparent) !important;
+  backdrop-filter: blur(8px);
+}
+
+.atlas-start,
+.atlas-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  overscroll-behavior: none;
+}
+
+.atlas-start-bg,
+.atlas-loading-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #0a0b0c 35%, transparent) 0%, #0a0b0c 72%),
+    url("/og.jpg") center / cover no-repeat;
+  transform: scale(1.04);
+  filter: brightness(0.55) saturate(0.85);
+}
+
+.atlas-loading-bg {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #0a0b0c 50%, transparent), #0a0b0c 80%),
+    url("/og.jpg") center / cover no-repeat;
+  filter: brightness(0.35) saturate(0.5) blur(2px);
+}
+
+.atlas-start-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 28%, transparent 0%, color-mix(in oklab, #0a0b0c 70%, transparent) 70%, #0a0b0c 100%),
+    linear-gradient(180deg, transparent 40%, #0a0b0c 92%);
+  pointer-events: none;
+}
+
+.atlas-start-body,
+.atlas-loading-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem 1.5rem;
+  text-align: center;
+}
+
+.atlas-start-title {
+  margin-top: 1.25rem;
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #f3efe6;
+  text-shadow: 0 2px 24px color-mix(in oklab, #000 50%, transparent);
+}
+
+.atlas-start-sub {
+  margin-top: 0.55rem;
+  font-size: 1.05rem;
+  color: color-mix(in oklab, #f3efe6 72%, transparent);
+}
+
+.atlas-start-foot,
+.atlas-loading-foot {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+}
+
+.atlas-loading-bar {
+  margin-top: 1rem;
+  width: min(12rem, 50vw);
+  height: 3px;
+  border-radius: 99px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+.atlas-loading-bar > span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 99px;
+  background: var(--color-accent);
+  animation: atlas-load-slide 1.4s var(--ease-out) infinite;
+}
+@keyframes atlas-load-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(280%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-loading-bar > span {
+    width: 100%;
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+.atlas-ad-card {
+  position: relative;
+  margin-top: 1.75rem;
+  width: min(22rem, 100%);
+  padding: 1.35rem 1.25rem 1.25rem;
+  text-align: left;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-strong);
+  background: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(12px);
+}
+.atlas-ad-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.85rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+/* Top bar LIVE pill + logo depth (map chrome) */
+.atlas-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.atlas-topbar-logo {
+  box-shadow:
+    0 4px 12px color-mix(in oklab, #000 45%, transparent),
+    inset 0 1px 1px color-mix(in oklab, #fff 30%, transparent);
+}
+
+/* Locate FAB — mock magenta circle */
+.atlas-locate-fab {
+  border-radius: 999px !important;
+  background: var(--color-accent) !important;
+  color: var(--color-accent-fg) !important;
+  border-color: transparent !important;
+  box-shadow: 0 10px 28px color-mix(in oklab, var(--color-accent) 40%, transparent);
+}
+.atlas-locate-fab[data-active="true"] {
+  outline: 2px solid color-mix(in oklab, #fff 35%, transparent);
+  outline-offset: 2px;
+}

@@ -138,16 +138,19 @@ export function AppTopBar({
           alt=""
           width={32}
           height={32}
-          className="size-8 shrink-0 rounded-full object-cover ring-1 ring-accent/50"
+          className="atlas-topbar-logo size-8 shrink-0 rounded-full object-cover ring-1 ring-accent/40"
         />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-display text-lg leading-none tracking-tight">
-            Alamo <em className="italic text-accent">Atlas</em>
+          <h1 className="truncate font-display text-lg leading-none tracking-tight text-[#f3efe6]">
+            Alamo Atlas
           </h1>
         </div>
-        <span className="live-dot shrink-0" aria-hidden="true" />
-        <span className="shrink-0 text-xs tabular-nums text-muted">
-          {liveCount != null ? liveCount : "—"}
+        <span className="atlas-live-pill shrink-0" title={liveLabel}>
+          <span className="live-dot !size-1.5 !animate-none opacity-100" aria-hidden="true" />
+          {t("tab.live")}
+          {liveCount != null ? (
+            <span className="tabular-nums opacity-90">{liveCount}</span>
+          ) : null}
         </span>
         <button
           type="button"
@@ -282,7 +285,7 @@ export function LocateFab({
         data-active={ready}
         aria-label={`${label}. ${t("hint.locate")}`}
         title={t("hint.locate")}
-        className="flex size-12 items-center justify-center rounded-xl border border-border bg-bg/88 text-fg shadow-float backdrop-blur-md data-[active=true]:border-accent data-[active=true]:text-accent disabled:opacity-40"
+        className="atlas-locate-fab flex size-12 items-center justify-center shadow-float disabled:opacity-40"
       >
         <MapPin className="size-5" />
       </button>

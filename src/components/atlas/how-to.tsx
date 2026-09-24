@@ -121,7 +121,7 @@ export function HowTo({
       onTouchEnd={onTouchEnd}
     >
       <header className="flex shrink-0 items-center gap-3 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 md:px-6">
-        <img src="/logo.jpg" alt="" width={40} height={40} className="size-10 rounded-full object-cover ring-1 ring-accent/40" />
+        <img src="/logo.jpg" alt="" width={40} height={40} className="atlas-logo-3d size-10 rounded-full object-cover ring-1 ring-accent/40" />
         <div className="min-w-0 flex-1">
           <p className="atlas-kicker hidden md:block">{t("howto.kicker")}</p>
           <h2 id={titleId} className="truncate font-display text-xl leading-none tracking-tight md:text-2xl">
